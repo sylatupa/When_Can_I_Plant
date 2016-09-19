@@ -7,42 +7,7 @@ import socket
 import time
 import random
 import sys
-#import serial
-path = ''
-sys_usr = ""
-if sys.platform =='win32':
-    sys_usr = 'mydesktop'
-elif (sys.platform == 'linux2') & (os.getenv("USERNAME") == 'pi'):
-    sys_usr = 'raspberry'
-elif (sys.platform == 'linux2') & (os.getenv("USERNAME") == 'None'):
-    sys_usr = 'saguaro'
-
-print sys_usr
-if sys_usr == 'mydesktop':
-    path = 'C:\Dropbox (Personal)\PROJECTS_WORKING\When_Can_I_Plant'
-    os.chdir(path)
-    sys.path.append(path)
-
-elif sys_usr == 'raspberry':
-    print os.getenv("USERNAME")
-    path = './Documents/When_Can_I_Plant'
-    os.chdir(path)
-    sys.path.append(path)
-    import max7219.led as led
-    import RPi.GPIO as GPIO ## Import GPIO library
-    device = led.matrix(cascaded=1)
-    device.brightness(7)
-    GPIO.setmode(GPIO.BOARD) ## Use board pin numbering
-    GPIO.setup(7, GPIO.OUT) ## Setup GPIO Pin 7 to OUT
-    GPIO.output(7,False) ## Turn on GPIO pin 7
-elif sys_usr == 'saguaro':
-    path = './home/sylatupa'
-    print 'no username, you should be using saguaro'
-    os.chdir(path)
-    sys.path.append(path)
-
 import io_read_file
-
 tables_reader = ''
 export_reader = ''
 tables_list = ''
@@ -51,6 +16,45 @@ writer = ''
 reader = ''
 verbose = False
 csv_file = ''
+#import serial
+path = ''
+
+print (sys.platform == 'linux2')
+print  (str(os.getenv("USERNAME")) == 'None')
+print sys.platform
+print os.getenv("USERNAME")
+
+sys_usr = ""
+if sys.platform =='win32':
+    sys_usr = 'mydesktop'
+elif (sys.platform == 'linux2') & (str(os.getenv("USERNAME")) == 'None'):
+    sys_usr = 'raspberry'
+elif (sys.platform == 'linux2') & (os.getenv("USERNAME") == 'None'):
+    sys_usr = 'saguaro'
+print 'sysuser value' , sys_usr
+if sys_usr == 'mydesktop':
+    path = 'C:\Dropbox (Personal)\PROJECTS_WORKING\When_Can_I_Plant'
+    os.chdir(path)
+    sys.path.append(path)
+elif sys_usr == 'raspberry':
+    print 'using raspberry'
+    global device
+    print os.getenv("USERNAME")
+    path = '/home/pi/Documents/When_Can_I_Plant'
+    os.chdir(path)
+    sys.path.append(path)
+    import max7219.led as led
+    import RPi.GPIO as GPIO ## Import GPIO library
+    device = led.matrix(cascaded=1)
+    device.brightness(7)
+    GPIO.setmode(GPIO.BOARD) ## Use board pin numbering
+#    GPIO.setup(7, GPIO.OUT) ## Setup GPIO Pin 7 to OUT
+#    GPIO.output(7,False) ## Turn on GPIO pin 7
+elif sys_usr == 'saguaro':
+    path = './home/sylatupa'
+    print 'no username, you should be using saguaro'
+    os.chdir(path)
+    sys.path.append(path)
 
 class csvFile:
     """building stat framework for file"""
@@ -73,7 +77,7 @@ class csvFile:
 
         self.columns_stats = io_read_file.get_column_stat(self.columns_as_dict_data)
 def main():
-        global tables_reader, export_reader, tables_list, export_list, writer, csv_file
+        global tables_reader, export_reader, tables_list, export_list, writer, csv_file, device
         print os.getcwd()
         csv_file = csvFile('micromet_analysis3rd.csv') # Make the cvsFile Object to store info
         #io_read_file.write_dict_to_csv(csv_file.columns_as_dict_strings, 'columns2.csv' )
@@ -84,6 +88,12 @@ def main():
         var = 1
 
         while var == 1 :  # This constructs an infinite loop
+            if sys_usr == 'raspberry':
+                label = 'SUN'
+                device.show_message(label)
+                device.flush()
+                time.sleep(1)
+
             if slider_forward == False:
                 rotation = dateend
                 dateend = datebegin
@@ -92,15 +102,18 @@ def main():
                 rotation = dateend
                 dateend = datebegin
                 datebegin = rotation
-            rand = random.choice([-1,1])
+
             for i in range(datebegin,dateend):
-                #print rand
                 max_netrad_avg = 197.85
+                #max_value = csv_file.columns_stats[current_data_set]
                 actual_day = int(round((csv_file.columns_as_dict_data['DayOfYear'][i])))
                 day1 = int(round((csv_file.columns_as_dict_data['DayOfYear'][i]/365)*8))
-                print "next"
+
                 if (actual_day <= 357):
+
+
                     for rownum in range(0,7,):
+                        rand = random.choice([-1,1])
                         day = day1 + rownum
                         #avg_netrad_avg = ((csv_file.columns_as_dict_data['avg_netrad_avg'][i+rownum] + (csv_file.columns_as_dict_data['stnddev_netrad_avg'][i+rownum] * rand)) / ((csv_file.columns_as_dict_data['stnddev_netrad_avg'][i+rownum] * rand) + max_netrad_avg))
                         print  'avg_netrad_avg: ' ,csv_file.columns_as_dict_data['avg_netrad_avg'][i+rownum]
@@ -109,22 +122,26 @@ def main():
                         avg_netrad_avg_denom = ((csv_file.columns_as_dict_data['stnddev_netrad_avg'][i+rownum] * rand) + max_netrad_avg)
                         avg_netrad_avg = int(round((avg_netrad_avg_numer / avg_netrad_avg_denom)*8))
 
-                        #print csv_file.columns_as_dict_data['avg_netrad_avg'][i+rownum]
-                        #print 'numr1:', csv_file.columns_as_dict_data['avg_netrad_avg'][i+rownum]
-                        ##print ' + ' , csv_file.columns_as_dict_data['stnddev_netrad_avg'][i+rownum]
+                        print 'day:' , day
+                        print 'actual value' ,csv_file.columns_as_dict_data['avg_netrad_avg'][i+rownum]
+                        print 'numr1:', csv_file.columns_as_dict_data['avg_netrad_avg'][i+rownum]
+                        print ' + ' , csv_file.columns_as_dict_data['stnddev_netrad_avg'][i+rownum]
                         print ' * ',  rand
                         print "numr", avg_netrad_avg_numer
                         print "stnd dev",(csv_file.columns_as_dict_data['stnddev_netrad_avg'][i+rownum])
                         print "denom", avg_netrad_avg_denom
-                        print "normalized: ", avg_netrad_avg
+                        print "avg_netrad_avg norm: ", avg_netrad_avg
 
-                        #print "Final", day, " ".join(["%s"%' ' for i in range(int(avg_netrad_avg))])  , avg_netrad_avg
+                        print "Final", day, " ".join(["%s"%' ' for i in range(int(avg_netrad_avg))])  , avg_netrad_avg
 
                         time.sleep(.01)
 
                         if sys_usr == 'raspberry':
-                            device.pixel(day, int(round((avg_netrad_avg_numer/avg_netrad_avg_denom)*8))-6, 1, redraw=True)
-                            device.flush()
+                            print 'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest'
+                            if( day < 8 & day >= 0 & avg_netrad_avg < 8 & avg_netrad_avg>=0):
+                                print 'matrix cant even handle'
+                                device.pixel(day, int(round((avg_netrad_avg_numer/avg_netrad_avg_denom)*8))-6, 1, redraw=True)
+                                device.flush()
 
                     if sys_usr == 'raspberry':
                         device.clear()
